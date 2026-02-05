@@ -16,13 +16,10 @@ export default function RootLayout({
       <body>
         <div className="page">
           <header className="header">
-            <h1>Генератор задач ЕГЭ (база) №6: Доли и проценты</h1>
-            <p>
-              Алгоритмическая генерация задач без использования нейросетей.
-            </p>
+            <h1>Генератор задач №6 ЕГЭ (база)</h1>
           </header>
           <main className="main">{children}</main>
-          <footer className="footer">© Учебный генератор</footer>
+          <footer className="footer">© Тестовое задание Риммы Раппопорт</footer>
         </div>
       </body>
     </html>

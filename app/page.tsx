@@ -3,12 +3,13 @@
 import { useMemo, useState } from "react";
 import {
   TASK_TYPES,
+  TASK_TYPE_LABELS,
   generateTask,
   type TaskType,
   type Task,
 } from "../src/generator";
 
-const DEFAULT_SEED = "12345";
+const DEFAULT_SEED = "";
 
 function parseSeed(input: string): number | undefined {
   const s = input.trim();
@@ -33,6 +34,8 @@ export default function HomePage() {
   const [task, setTask] = useState<Task>(() => generateTask());
   const [showSolution, setShowSolution] = useState(false);
 
+  const taskTypeLabel = TASK_TYPE_LABELS[task.type] ?? task.type;
+
   const handleGenerate = () => {
     const normalizedType: TaskType | undefined =
       selectedType === "any" ? undefined : selectedType;
@@ -44,9 +47,6 @@ export default function HomePage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: 24 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 12 }}>
-        Генератор задач ЕГЭ (№6: проценты)
-      </h1>
 
       <div
         style={{
@@ -69,23 +69,20 @@ export default function HomePage() {
             <option value="any">Любой</option>
             {TASK_TYPES.map((t) => (
               <option key={t} value={t}>
-                {t}
+                {TASK_TYPE_LABELS[t] ?? t}
               </option>
             ))}
           </select>
         </label>
 
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span>Seed (целое число, необязательно)</span>
+          <span>Seed</span>
           <input
             value={seedInput}
             onChange={(e) => setSeedInput(e.target.value)}
             placeholder="например 12345"
             style={{ padding: 8, minWidth: 220 }}
           />
-          <span style={{ fontSize: 12, opacity: 0.8 }}>
-            {seedValue ? `Используется seed: ${seedValue}` : "Seed не задан → случайно"}
-          </span>
         </label>
 
         <button
@@ -124,7 +121,7 @@ export default function HomePage() {
         }}
       >
         <div style={{ fontSize: 14, opacity: 0.8, marginBottom: 6 }}>
-          Тип: <b>{task.type}</b>
+          Тип: <b>{taskTypeLabel}</b>
         </div>
 
         <div style={{ fontSize: 18, lineHeight: 1.4 }}>{task.statement}</div>

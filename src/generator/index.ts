@@ -22,6 +22,14 @@ export const TASK_TYPES: TaskType[] = GENERATORS.map(
   (g) => g.id as TaskType
 );
 
+export const TASK_TYPE_LABELS: Record<TaskType, string> = GENERATORS.reduce(
+  (acc, g) => {
+    acc[g.id as TaskType] = g.title;
+    return acc;
+  },
+  {} as Record<TaskType, string>
+);
+
 export function generateTask(
   type?: TaskType,
   seed: number = Date.now()
