@@ -1,59 +1,96 @@
-import { formatNumber, roundTo } from "../format";
-import { pick } from "../rng";
-import type { TaskGenerator } from "../types";
+// src/generator/taskTypes/timesChange.ts
+
+import { pick, type RNG } from "../rng";
+import type { Task, TaskGenerator } from "../types";
 
 const TEMPLATES = {
   increase: [
-    "Число увеличилось в {k} раза. На сколько процентов оно увеличилось?",
-    "Производительность выросла в {k} раза. На сколько процентов она увеличилась?",
-    "Выпуск продукции увеличился в {k} раза. На сколько процентов он вырос?"
+    "Величина увеличилась в {k} раза. На сколько процентов увеличилась величина?",
+    "Число увеличили в {k} раза. На сколько процентов увеличилось число?",
+    "Цена выросла в {k} раза. На сколько процентов выросла цена?",
   ],
   decrease: [
-    "Объём продаж уменьшился в {k} раза. На сколько процентов он уменьшился?",
-    "Число уменьшилось в {k} раза. На сколько процентов оно уменьшилось?",
-    "Потребление снизилось в {k} раза. На сколько процентов оно уменьшилось?"
-  ]
-};
+    "Величина уменьшилась в {k} раза. На сколько процентов уменьшилась величина?",
+    "Число уменьшили в {k} раза. На сколько процентов уменьшилось число?",
+    "Цена уменьшилась в {k} раза. На сколько процентов уменьшилась цена?",
+  ],
+} as const;
+
+type Mode = keyof typeof TEMPLATES; // "increase" | "decrease"
+
+// k подобраны так, чтобы (1 - 1/k) * 100 было целым
+const K_VALUES = [2, 4, 5, 10] as const;
+
+function computeAnswer(k: number, mode: Mode): number {
+  if (mode === "increase") return (k - 1) * 100;
+  return (1 - 1 / k) * 100;
+}
+
+function makeId(prefix: string): string {
+  const uuid =
+    typeof globalThis !== "undefined" &&
+    (globalThis as any).crypto?.randomUUID?.();
+
+  return uuid
+    ? `${prefix}-${uuid}`
+    : `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 export const timesChange: TaskGenerator = {
-  id: "times-change",
-  title: "Увеличилось/уменьшилось в k раз",
-  generate: (rng) => {
-    const mode = pick(rng, ["increase", "decrease", "increase"]);
-    const k = mode === "decrease" ? pick(rng, [2, 4, 5, 10]) : pick(rng, [2, 3, 4, 5]);
-    const percent =
-      mode === "decrease"
-        ? roundTo((1 - 1 / k) * 100, k === 3 ? 1 : 0)
-        : (k - 1) * 100;
+  id: "timesChange",
+  title: "Изменение в несколько раз → проценты",
+
+  generate: (rng: RNG): Task => {
+    // В meta.seed нужно число. В твоём RNG, судя по проекту, seed обычно лежит как поле.
+    // Если поля seed нет, поставим стабильный fallback.
+    const seed =
+      typeof (rng as any).seed === "number"
+        ? (rng as any).seed
+        : Date.now();
+
+    const k = pick(rng, [...K_VALUES]);
+    const mode = pick(rng, ["increase", "decrease"] as const);
+
+    const answerNumber = computeAnswer(k, mode);
+    const answer = String(answerNumber);
 
     const template = pick(rng, TEMPLATES[mode]);
     const statement = template.replace("{k}", String(k));
 
     return {
-      id: `${Date.now()}-times-change`,
-      type: "times-change",
+      id: makeId("timesChange"),
+      type: "timesChange",
       statement,
-      answer: formatNumber(percent),
+      answer,
       steps: [
-        `Шаг 1. При изменении в ${k} раза новое значение = старое × ${k}.`,
-        mode === "decrease"
-          ? `Шаг 2. Уменьшение: 1 - 1/${k} = ${formatNumber(roundTo(1 - 1 / k, 3))}.`
-          : `Шаг 2. Увеличение: ${k} - 1 = ${k - 1}.`,
-        `Шаг 3. Переводим в проценты: ${formatNumber(percent)}%.`,
-        `Ответ: ${formatNumber(percent)}.`
+        mode === "increase"
+          ? `Увеличение в ${k} раза: новое = старое · ${k}.`
+          : `Уменьшение в ${k} раза: новое = старое / ${k}.`,
+        mode === "increase"
+          ? `Процентное увеличение: (k − 1) · 100 = (${k} − 1) · 100 = ${answer}%.`
+          : `Процентное уменьшение: (1 − 1/k) · 100 = (1 − 1/${k}) · 100 = ${answer}%.`,
       ],
       meta: {
-        seed: 0,
-        params: { k, mode }
-      }
+        seed,
+        params: { k, mode },
+      },
     };
   },
-  solveFromParams: (params) => {
-    const k = Number(params.k);
-    const mode = String(params.mode);
-    if (mode === "decrease") {
-      return (1 - 1 / k) * 100;
-    }
-    return (k - 1) * 100;
-  }
+
+  solveFromParams: (params: Record<string, unknown>): number => {
+    const kRaw = params.k;
+    const modeRaw = params.mode;
+
+    const k = typeof kRaw === "number" ? kRaw : Number(kRaw);
+    if (!Number.isFinite(k) || k <= 0) return NaN;
+
+    const mode: Mode =
+      modeRaw === "increase" || modeRaw === "decrease"
+        ? modeRaw
+        : "increase";
+
+    return computeAnswer(k, mode);
+  },
 };
+
+export default timesChange;

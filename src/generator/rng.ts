@@ -1,18 +1,36 @@
-export function mulberry32(seed: number) {
-  let t = seed >>> 0;
-  return () => {
-    t += 0x6d2b79f5;
-    let r = t;
-    r = Math.imul(r ^ (r >>> 15), r | 1);
-    r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
+export type RNG = {
+  seed: number;
+};
+
+/**
+ * Детерминированный генератор случайных чисел (mulberry32)
+ * Используется как базовый RNG по seed
+ */
+export function mulberry32(seed: number): RNG {
+  return { seed };
 }
 
-export function randInt(rng: () => number, min: number, max: number) {
-  return Math.floor(rng() * (max - min + 1)) + min;
+/**
+ * Псевдослучайное число от 0 до 1
+ */
+export function rand(rng: RNG): number {
+  rng.seed |= 0;
+  rng.seed = (rng.seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(rng.seed ^ (rng.seed >>> 15), 1 | rng.seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-export function pick<T>(rng: () => number, list: T[]): T {
-  return list[randInt(rng, 0, list.length - 1)];
+/**
+ * Случайное целое число от min до max включительно
+ */
+export function randInt(rng: RNG, min: number, max: number): number {
+  return Math.floor(rand(rng) * (max - min + 1)) + min;
+}
+
+/**
+ * Случайный элемент массива (поддерживает readonly массивы)
+ */
+export function pick<T>(rng: RNG, arr: readonly T[]): T {
+  return arr[randInt(rng, 0, arr.length - 1)];
 }

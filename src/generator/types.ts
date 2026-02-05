@@ -1,12 +1,11 @@
-export type TaskType =
-  | "ratio-percent"
-  | "part-of-whole"
-  | "percent-change"
-  | "times-change"
-  | "single-discount"
-  | "double-discount"
-  | "withholding"
-  | "fraction-of-old";
+import type { RNG } from "./rng";
+
+export type TaskType = string;
+
+export type TaskMeta = {
+  seed: number;
+  params: Record<string, unknown>;
+};
 
 export type Task = {
   id: string;
@@ -14,15 +13,16 @@ export type Task = {
   statement: string;
   answer: string;
   steps: string[];
-  meta: {
-    seed: number;
-    params: Record<string, number | string | boolean>;
-  };
+  meta: TaskMeta;
 };
 
 export type TaskGenerator = {
   id: TaskType;
   title: string;
-  generate: (rng: () => number) => Task;
-  solveFromParams?: (params: Record<string, number | string | boolean>) => number;
+
+  // ВАЖНО: теперь генераторы принимают RNG-объект, а не функцию () => number
+  generate: (rng: RNG) => Task;
+
+  // опционально: восстановление ответа по параметрам (если где-то используется)
+  solveFromParams?: (params: Record<string, unknown>) => number;
 };
